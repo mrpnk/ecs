@@ -2,6 +2,7 @@
 #include <SFML/Graphics.hpp>
 
 #include "ecs.hpp"
+#include "framerate.hpp"
 #include <chrono>
 
 class Game{
@@ -9,11 +10,12 @@ class Game{
 	sf::Texture texture;
 	sf::Font font;
 	sf::Text text;
-
+	sf::CircleShape cs;
 
 	myecs::MyEntityManager em;
-	myecs::MoveSystem ms;
+	myecs::VerletIntegrator ms;
 	myecs::RenderSystem rs;
+	myecs::Logger lg;
 
 public:
 	int load(){
@@ -34,10 +36,20 @@ public:
 	}
 	void move(float dt){
 		ms.update(em, dt);
+		lg.update(em, dt);
 	}
 	void render(sf::RenderWindow& window){
 		rs.update(em, window);
 		window.draw(text);
+
+		cs.setPosition(400,300);
+		cs.setOrigin(250,250);
+		cs.setRadius(250);
+		cs.setOutlineThickness(2);
+		cs.setOutlineColor(sf::Color::White);
+		cs.setFillColor(sf::Color::Transparent);
+		cs.setPointCount(128);
+		window.draw(cs);
 	}
 };
 
@@ -45,17 +57,18 @@ public:
 
 
 int main(){
-	sf::RenderWindow window(sf::VideoMode(800, 600), "SFML window");
+	sf::ContextSettings settings(0,0,8);
+
+	sf::RenderWindow window(sf::VideoMode(800, 600), "SFML window", sf::Style::Default, settings);
 
 	Game game;
 	game.load();
 
-	auto t0 = std::chrono::high_resolution_clock::now(), t1=t0;
+	FrameLimiter fl(120);
+	fl.start();
 	while (window.isOpen())
 	{
-		t1 = std::chrono::high_resolution_clock::now();
-		auto dt = std::chrono::duration_cast<std::chrono::microseconds>(t1-t0).count()/1.e6;
-		t0 = t1;
+		float dt = fl.getDeltaTime();
 
 		// Process events
 		sf::Event event;
@@ -73,7 +86,6 @@ int main(){
 
 		// Update the window
 		window.display();
-
 
 	}
 	return EXIT_SUCCESS;
