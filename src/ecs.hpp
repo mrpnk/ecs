@@ -1,70 +1,57 @@
-#include <iostream>
 #include <vector>
-#include <memory>
-#include <bitset>
-#include <map>
-#include <typeindex>
 #include <tuple>
 #include <array>
-#include <cmath>
 #include <bit>
 
-#include "timer.hpp"
-namespace ecs {
+namespace ecs_utils {
 
-	// The first occurrence of type in a tuple
-	template <class T, class Tuple>
-	struct Index{
-		static_assert(!std::is_same_v<Tuple, std::tuple<>>, "Could not find `T` in given `Tuple`");
-	};
+	// The first occurrence of type in a pack
+	template<class T, class... U>
+	constexpr size_t index = -1;
 
-	template <class T, class... Types>
-	struct Index<T, std::tuple<T, Types...>> {
-		static const std::size_t value = 0;
-	};
+	template<class T, class... U>
+	constexpr size_t index<T, T, U...> = 0;
 
-	template <class T, class U, class... Types>
-	struct Index<T, std::tuple<U, Types...>> {
-		static const std::size_t value = 1 + Index<T, std::tuple<Types...>>::value;
-	};
+	template<class T, class U0, class... U>
+	constexpr size_t index<T, U0, U...> = 1 + index<T, U...>;
+
 
 	template<class T>
-	struct TypeIndex{
+	struct TypeIndex {
 		using type = T;
 		size_t i;
 	};
-	template<typename... Args>
-	class TypeList{
-		using tuple_t = std::tuple<Args...>;
+
+	template<typename... Types>
+	class TypeList {
+		using tuple_t = std::tuple<Types...>;
 
 	public:
-		static constexpr void for_each(auto&& f)
-		requires (std::is_invocable_v<decltype(f),TypeIndex<Args>>&&...){
-			[&]<std::size_t... i>(std::index_sequence<i...>){
-				(f(TypeIndex<std::tuple_element_t<i,tuple_t>>{i}), ...);
-			}(std::make_index_sequence<sizeof...(Args)>{});
+		static constexpr void for_each(auto&& f) requires(std::is_invocable_v<decltype(f), TypeIndex<Types>>&& ...){
+			[&]<std::size_t... i>(std::index_sequence<i...>) {
+				(f(TypeIndex<std::tuple_element_t<i, tuple_t>>{i}), ...);
+			}(std::make_index_sequence<sizeof...(Types)>{});
 		}
 
 		template<typename T>
-		static constexpr std::size_t index_of(){
-			return Index<T, tuple_t>::value;
+		static constexpr std::size_t index_of() {
+			return index<T, Types...>;
 		}
 
-		static constexpr size_t size(){
-			return sizeof...(Args);
+		static constexpr size_t size() {
+			return sizeof...(Types);
 		}
-
 
 
 		template<typename... A>
-		class SubList{
+		class SubList {
 			static constexpr size_t a[] = {index_of<A>()...};
 		public:
-			static constexpr bool in_order = std::is_sorted(std::cbegin(a),std::cend(a));
+			static constexpr bool in_order = std::is_sorted(std::cbegin(a), std::cend(a));
 		};
 
 		template<typename U>
-		static constexpr bool is_any = (std::same_as<U, Args>||...);
+		static constexpr bool is_any = (std::same_as<U, Types>||...);
 
 		template<typename... U>
 		static constexpr bool is_subset = (is_any<U>&&...);
@@ -74,17 +61,18 @@ namespace ecs {
 
 	};
 
+
 	template<typename U0, typename... U>
 	constexpr bool is_duplicate_free = !(std::same_as<U0, U>||...) && is_duplicate_free<U...>;
 
 	template<typename U0>
 	constexpr bool is_duplicate_free<U0> = true;
 
+}
 
-
-	//--------------------------------------------------------------------------------------
-	// Now come ECS-related things
-
+namespace ecs
+{
+	using namespace ecs_utils;
 
 	template<typename... TComponents> requires is_duplicate_free<TComponents...>
 	class ComponentStorage{
@@ -138,7 +126,7 @@ namespace ecs {
 		std::vector<std::unique_ptr<Entity>> entities;
 		TComponentStorage cs;
 
-		// Returns the number of set bits in 'bits' to the right of the mask bis 'ask', given that bits&ask>0.
+		// Returns the number of set bits in 'bits' to the right of the mask bit 'ask', given that bits&ask>0.
 		static constexpr size_t getNumRight(TComponentBits const& bits, TComponentBits const& ask){
 			return std::popcount(bits<<(std::countl_zero(ask)))-1;
 		}
@@ -160,6 +148,7 @@ namespace ecs {
 				TL::for_each([this, &e](auto t) {
 					e->compIndices[t.i] = cs.template createComponent<typename decltype(t)::type>();
 				});
+
 				forAllComponents<TCreateComponents...>(e, initFunc, i);
 				entities.push_back(std::move(e));
 			}
