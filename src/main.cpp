@@ -1,70 +1,23 @@
-#include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
-#include "ecs.hpp"
+#include "game.hpp"
 #include "framerate.hpp"
-#include <chrono>
-
-class Game{
-
-	sf::Texture texture;
-	sf::Font font;
-	sf::Text text;
-	sf::CircleShape cs;
-
-	myecs::MyEntityManager em;
-	myecs::VerletIntegrator ms;
-	myecs::RenderSystem rs;
-	myecs::Logger lg;
-
-public:
-	int load(){
-
-		// Create a graphical text to display
-		if (!font.loadFromFile("arial.ttf"))
-			return EXIT_FAILURE;
-		text.setFont(font);
-		text.setCharacterSize(30);
-
-
-		// Create the entities
-		myecs::makeEnemies(em, 10);
-
-
-
-		return 0;
-	}
-	void move(float dt){
-		ms.update(em, dt);
-		lg.update(em, dt);
-	}
-	void render(sf::RenderWindow& window){
-		rs.update(em, window);
-		window.draw(text);
-
-		cs.setPosition(400,300);
-		cs.setOrigin(250,250);
-		cs.setRadius(250);
-		cs.setOutlineThickness(2);
-		cs.setOutlineColor(sf::Color::White);
-		cs.setFillColor(sf::Color::Transparent);
-		cs.setPointCount(128);
-		window.draw(cs);
-	}
-};
-
-
 
 
 int main(){
 	sf::ContextSettings settings(0,0,8);
 
-	sf::RenderWindow window(sf::VideoMode(800, 600), "SFML window", sf::Style::Default, settings);
+	sf::RenderWindow window(sf::VideoMode(1200, 1000), "Entity Component System - Test", sf::Style::Default, settings);
+
+	sf::View view;
+	view.setCenter(0, 0);
+	view.setSize((float)window.getSize().x/window.getSize().y,1.f);
+	window.setView(view);
 
 	Game game;
 	game.load();
 
-	FrameLimiter fl(120);
+	FrameLimiter fl(12000);
 	fl.start();
 	while (window.isOpen())
 	{
@@ -88,5 +41,7 @@ int main(){
 		window.display();
 
 	}
-	return EXIT_SUCCESS;
+	g_timer.print();
+
+	return 0;
 }

@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 23)
 
 
 include_directories(../cppLibraries/sfml/include/)
+include_directories(../cppLibraries/fmt/include/)
 
 #set(SFML_DIR ../cppLibraries/sfml/extlibs/libs-mingw/x64)
 
