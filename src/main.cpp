@@ -5,9 +5,10 @@
 
 
 int main(){
-	sf::ContextSettings settings(0,0,8);
+	sf::ContextSettings settings(0,0,8); // 8x antialiasing
 
-	sf::RenderWindow window(sf::VideoMode(1200, 1000), "Entity Component System - Test", sf::Style::Default, settings);
+	sf::RenderWindow window(sf::VideoMode(1200, 1000), "Entity Component System - Test",
+							sf::Style::Titlebar | sf::Style::Close, settings);
 
 	sf::View view;
 	view.setCenter(0, 0);
@@ -19,8 +20,7 @@ int main(){
 
 	FrameLimiter fl(12000);
 	fl.start();
-	while (window.isOpen())
-	{
+	while (window.isOpen()){
 		float dt = fl.getDeltaTime();
 
 		// Process events
@@ -34,8 +34,8 @@ int main(){
 		// Clear screen
 		window.clear();
 
-		game.render(window);
 		game.move(dt);
+		game.render(window);
 
 		// Update the window
 		window.display();

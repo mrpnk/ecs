@@ -1,8 +1,9 @@
 #pragma once
 
 #include "ecs.hpp"
-#include "colour.hpp"
 #include "timer.hpp"
+#include "colour.hpp"
+
 #include <execution>
 #include <random>
 
@@ -45,7 +46,7 @@ using MyEntityManager = EntityManager<transform, physics, render>;
 
 // Global world properties
 struct {
-	sf::Vector2f gravity = {0, 1.2};
+	sf::Vector2f gravity = {0, 0.8};
 	sf::Vector2f bowlCentre = {0,0};
 	float bowlRadius = 0.4;
 }world;
@@ -158,9 +159,9 @@ public:
 			//std::cout << "transform address " << &tr << std::endl;
 			energy += -dot(world.gravity, tr.pos) + lengthsq(ph.vel) / 2.f;
 		});
-		em.forAllComponents<render>([this](render& re){
-			//	std::cout << "render address " << &re << std::endl;
-		});
+//		em.forAllComponents<render>([this](render& re){
+//			//	std::cout << "render address " << &re << std::endl;
+//		});
 	}
 };
 
@@ -168,15 +169,14 @@ public:
 // The application class.
 class Game{
 
-	sf::Texture texture;
 	sf::Font font;
 	sf::Text text;
 	sf::CircleShape cs;
 
 	MyEntityManager em;
-	MotionSolver ms;
-	Renderer rs;
-	Logger lg;
+	MotionSolver solver;
+	Renderer renderer;
+	Logger logger;
 
 	std::vector<ball> balls;
 
@@ -194,25 +194,27 @@ public:
 		std::mt19937 mt;
 
 		// Create the entities
-		const int num = 1000;
+		const int num = 500;
 		em.createEntities<struct transform,struct physics,struct render>(num,
             [&](int i, struct transform& tr,struct physics& ph, struct render& re){
-                ph.oldPos = tr.pos = world.bowlCentre+world.bowlRadius*sf::Vector2f{((float)i/(num-1)-0.5f)*2.f*0.8f, -0.2};
+                ph.oldPos = tr.pos = world.bowlCentre+
+						world.bowlRadius*sf::Vector2f{((float)i/(num-1)-0.5f)*2.f*0.8f, -0.5};
 
 				re.radius = ph.radius = urd(mt);
-                unsigned char hue = i*0.2;
+                unsigned char hue = (float)i/num*255;
                 auto rgb = HsvToRgb({hue,150,255});
                 re.colour = sf::Color(rgb.r,rgb.g,rgb.b);
             });
 
 
 //		// conventional method
-//		balls.resize(1000);
+//		balls.resize(5000);
 //		std::generate(balls.begin(),balls.end(),
-//					  [i=0]()mutable{
+//					  [&,i=0]()mutable{
 //			ball ba;
-//			ba.ph.oldPos = ba.tr.pos = {300+0.2f*i, 200};
-//			ba.re.radius = ba.ph.radius = 15.f;
+//			ba.ph.oldPos = ba.tr.pos = world.bowlCentre+
+//			                       world.bowlRadius*sf::Vector2f{((float)i/(num-1)-0.5f)*2.f*0.8f, -0.5};
+//			ba.re.radius = ba.ph.radius =  urd(mt);
 //			unsigned char hue = i*0.2;
 //			auto rgb = HsvToRgb({hue,150,255});
 //			ba.re.colour = sf::Color(rgb.r,rgb.g,rgb.b);
@@ -225,20 +227,20 @@ public:
 		return 0;
 	}
 	void move(float dt){
-		ms.update(em, dt);
-		lg.update(em, dt);
+		solver.update(em, dt);
+		logger.update(em, dt);
 	}
 	void render(sf::RenderWindow& window){
 		AutoTimer at(g_timer, _FUNC_);
 
 		// Draw all balls
-		rs.update(em, window);
+		renderer.update(em, window);
 
 		{
 			AutoTimer at(g_timer, "conv render");
 			std::for_each(std::execution::par, balls.begin(), balls.end(),
 						  [this, &window](ball& ba) {
-				rs.draw(window, ba.tr, ba.re);
+				renderer.draw(window, ba.tr, ba.re);
 			});
 		}
 
@@ -254,7 +256,7 @@ public:
 
 
 		// Draw some text
-		text.setString(std::to_string(lg.getEnergy()));
+		text.setString(std::to_string(logger.getEnergy()));
 		text.setPosition(0,0.46);
 		text.setOrigin(text.getLocalBounds().getSize()/2.f);
 		window.draw(text);
