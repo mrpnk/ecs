@@ -196,7 +196,7 @@ public:
 		// Create the entities
 		const int num = 500;
 		em.createEntities<struct transform,struct physics,struct render>(num,
-            [&](int i, struct transform& tr,struct physics& ph, struct render& re){
+            [&](int i, ecs::EntityHandle eh, struct transform& tr,struct physics& ph, struct render& re){
                 ph.oldPos = tr.pos = world.bowlCentre+
 						world.bowlRadius*sf::Vector2f{((float)i/(num-1)-0.5f)*2.f*0.8f, -0.5};
 
@@ -223,6 +223,17 @@ public:
 //		});
 
 
+		ecs::EntityHandle handle;
+		em.createEntities<struct transform,struct render>(1,
+		  [&](int i, ecs::EntityHandle eh, struct transform& tr, struct render& re){
+            handle = eh;
+         });
+
+		em.attachComponents<struct physics>(handle,
+		[&](struct physics& ph){
+
+		});
+
 
 		return 0;
 	}
@@ -230,7 +241,7 @@ public:
 		solver.update(em, dt);
 		logger.update(em, dt);
 	}
-	void render(sf::RenderWindow& window){
+	void render(sf::RenderWindow& window, float frameTime){
 		AutoTimer at(g_timer, _FUNC_);
 
 		// Draw all balls
@@ -259,6 +270,11 @@ public:
 		text.setString(std::to_string(logger.getEnergy()));
 		text.setPosition(0,0.46);
 		text.setOrigin(text.getLocalBounds().getSize()/2.f);
+		window.draw(text);
+
+		// Display frame time (unlimited)
+		text.setString(std::to_string(frameTime));
+		text.setPosition(-0.48,-0.46);
 		window.draw(text);
 	}
 };

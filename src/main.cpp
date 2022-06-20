@@ -18,10 +18,10 @@ int main(){
 	Game game;
 	game.load();
 
-	FrameLimiter fl(12000);
+	FrameLimiter fl(120);
 	fl.start();
 	while (window.isOpen()){
-		float dt = fl.getDeltaTime();
+		float dt = fl.frame();
 
 		// Process events
 		sf::Event event;
@@ -35,7 +35,7 @@ int main(){
 		window.clear();
 
 		game.move(dt);
-		game.render(window);
+		game.render(window, fl.getFrameTime());
 
 		// Update the window
 		window.display();
