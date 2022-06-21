@@ -25,6 +25,7 @@ struct transform {
 struct physics {
 	float mass;
 	float radius;
+	float restitution = 0.5; // 1 = elastic
 	sf::Vector2f vel, velim, oldVel;
 	sf::Vector2f oldPos;
 	sf::Vector2f acc, oldAcc;
@@ -103,6 +104,9 @@ class MotionSolver {
 	void applyGravity(MyEntityManager& em){
 		em.forAllComponents<physics>([this](physics& ph) {
 			accelerate(ph, world.gravity);
+			if(std::abs(ph.oldPos.x) < 0.05)
+				accelerate(ph, -3.f*world.gravity);
+			//accelerate(ph, (ph.oldPos.x<0?-1.f:1.f)*sf::Vector2f{ph.oldPos.y, -ph.oldPos.x} * 1.5f);
 		});
 	}
 	void applyConstraint(MyEntityManager& em, float dt){
@@ -111,24 +115,24 @@ class MotionSolver {
 			auto dist = length(conn);
 			if(dist > world.bowlRadius - ph.radius){
 				sf::Vector2f n = conn/dist;
-				tr.pos = world.bowlCentre + n*(world.bowlRadius - ph.radius);
 				float vn = dot(ph.vel, n);
-				auto vt = ph.vel-vn*n;
-				ph.vel = vt - vn*n;
+				auto vt = ph.vel - vn*n;
+				auto vt2 = lengthsq(vt);
 
-				// conserve energy
-				float e0 = -dot(world.gravity,ph.oldPos)+dot(ph.oldVel,ph.oldVel)/2.f;
+				auto oldPos = tr.pos;
+				tr.pos = world.bowlCentre + n*(world.bowlRadius - ph.radius);
+				ph.vel = vt - vn*n * ph.restitution ;
 
-				float v = sqrt(2*(e0+dot(world.gravity,tr.pos)));
-				ph.vel *= v/length(ph.vel);
-
-				float e2 = -dot(world.gravity,tr.pos)+dot(ph.vel,ph.vel)/2.f;
-
-//					if(abs(e2 - e0) > abs(std::min(e0,e2))*0.001)
-//						int sdf=2143;
-				// Determine contact point
-
-
+				float absv2 = lengthsq(ph.vel);
+				if(absv2 > 1e-6) {
+					// conserve energy
+					float ekin0 = vt2 + vn*vn * ph.restitution;
+					float e0 = -dot(world.gravity, oldPos) + ekin0 / 2.f;
+					float e1 = e0;
+					float v2 = 2 * (e1 + dot(world.gravity, tr.pos));
+					v2 = std::abs(v2); // might be negative when restitution is small
+					ph.vel *= std::sqrt(v2 / absv2);
+				}
 
 			}
 		});
@@ -194,17 +198,32 @@ public:
 		std::mt19937 mt;
 
 		// Create the entities
-		const int num = 500;
+		const int num = 100;
 		em.createEntities<struct transform,struct physics,struct render>(num,
             [&](int i, ecs::EntityHandle eh, struct transform& tr,struct physics& ph, struct render& re){
                 ph.oldPos = tr.pos = world.bowlCentre+
-						world.bowlRadius*sf::Vector2f{((float)i/(num-1)-0.5f)*2.f*0.8f, -0.5};
+						world.bowlRadius*sf::Vector2f{((float)i/(num-1)-0.5f)*2.f*0.9f, -0.5};
 
 				re.radius = ph.radius = urd(mt);
                 unsigned char hue = (float)i/num*255;
                 auto rgb = HsvToRgb({hue,150,255});
                 re.colour = sf::Color(rgb.r,rgb.g,rgb.b);
+	            ph.restitution = 0.9;
             });
+
+
+//
+//		std::vector<sf::Vector2f> positions = { {-0.9,0}, {-1,-0.3}, {0.7,0}, {0,-0.3},{-0.01,-0.3} };
+//		std::vector<sf::Color> colours = {sf::Color::Red, sf::Color::Blue, sf::Color::Green, sf::Color::Magenta, sf::Color::White};
+//		int n = positions.size();
+//		em.createEntities<struct transform,struct physics,struct render>(n,
+//		[&](int i, ecs::EntityHandle eh, struct transform& tr,struct physics& ph, struct render& re){
+//
+//			ph.oldPos = tr.pos = positions[i] * world.bowlRadius;
+//			re.radius = ph.radius = 0.01;
+//			re.colour = colours[i%n];
+//			ph.restitution = 0.9;
+//		});
 
 
 //		// conventional method
@@ -223,16 +242,16 @@ public:
 //		});
 
 
-		ecs::EntityHandle handle;
-		em.createEntities<struct transform,struct render>(1,
-		  [&](int i, ecs::EntityHandle eh, struct transform& tr, struct render& re){
-            handle = eh;
-         });
-
-		em.attachComponents<struct physics>(handle,
-		[&](struct physics& ph){
-
-		});
+//		ecs::EntityHandle handle;
+//		em.createEntities<struct transform,struct render>(1,
+//		  [&](int i, ecs::EntityHandle eh, struct transform& tr, struct render& re){
+//            handle = eh;
+//         });
+//
+//		em.attachComponents<struct physics>(handle,
+//		[&](struct physics& ph){
+//
+//		});
 
 
 		return 0;

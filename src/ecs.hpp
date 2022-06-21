@@ -1,3 +1,5 @@
+// This is the original file.
+
 #include <vector>
 #include <tuple>
 #include <array>
@@ -229,20 +231,17 @@ namespace ecs
 			});
 
 
+			// Sort the compIndices according to the components they refer to:
 			std::vector<int> a(n1);
 			fill(e.bits, a);
 			fill(sig, a.data()+n0);
 
-
 			std::vector<int> idx(n1);
 			std::iota(idx.begin(),idx.end(),0);
-
 			std::sort(idx.begin(),idx.end(),[&a](int l, int r){return a[l]<a[r];});
-
 			inplace_permute(e.compIndices, idx);
 
 			e.bits |= sig;
-
 		}
 
 
