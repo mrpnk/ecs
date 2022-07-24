@@ -15,6 +15,7 @@ int main(){
 	view.setSize((float)window.getSize().x/window.getSize().y,1.f);
 	window.setView(view);
 
+
 	Game game;
 	game.load();
 

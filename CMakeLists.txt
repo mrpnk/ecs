@@ -7,18 +7,28 @@ set(CMAKE_CXX_STANDARD 23)
 include_directories(../cppLibraries/sfml/include/)
 include_directories(../cppLibraries/fmt/include/)
 
-#set(SFML_DIR ../cppLibraries/sfml/extlibs/libs-mingw/x64)
 
-#find_package(SFML COMPONENTS graphics REQUIRED)
-find_library(SFML_LIBRARIES_Graphics sfml-graphics HINT ../cppLibraries/sfml/cmake-build-release/lib)
-find_library(SFML_LIBRARIES_Window sfml-window HINT ../cppLibraries/sfml/cmake-build-release/lib)
-find_library(SFML_LIBRARIES_System sfml-system HINT ../cppLibraries/sfml/cmake-build-release/lib)
+if(MSVC)
+    set(SFML_DIR "../../cppLibraries/sfml/vs/lib/Release")
+else()
+    set(SFML_DIR "../cppLibraries/sfml/cmake-build-release/lib")
+endif()
 
-message(STATUS "SFML_LIBRARIES is ${SFML_LIBRARIES}")
+set(SFML_LIBRARIES_Graphics "${SFML_DIR}/sfml-graphics")
+set(SFML_LIBRARIES_Window   "${SFML_DIR}/sfml-window")
+set(SFML_LIBRARIES_System   "${SFML_DIR}/sfml-system")
 
 
 add_executable(ECS src/main.cpp)
 
+if(MSVC)
+    set_target_properties(ECS PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG "../env/" )
+    set_target_properties(ECS PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE "../env/" )
+    set_target_properties(ECS PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "../env/")
+endif()
+
 target_link_libraries(ECS   ${SFML_LIBRARIES_Graphics}
                             ${SFML_LIBRARIES_Window}
                             ${SFML_LIBRARIES_System})
+
+

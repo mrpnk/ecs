@@ -188,17 +188,18 @@ public:
 	int load(){
 
 		// Create a graphical text to display
-		if (!font.loadFromFile("arial.ttf"))
-			return EXIT_FAILURE;
-		text.setFont(font);
-		text.setCharacterSize(30);
-		text.setScale({0.001,0.001});
+		if (font.loadFromFile("arial.ttf")){
+			text.setFont(font);
+			text.setCharacterSize(30);
+			text.setScale({ 0.001,0.001 });
+		}
 
 		std::uniform_real_distribution<float> urd(0.002,0.02);
 		std::mt19937 mt;
 
 		// Create the entities
 		const int num = 100;
+		em.setPrefabbing(false);
 		em.createEntities<struct transform,struct physics,struct render>(num,
             [&](int i, ecs::EntityHandle eh, struct transform& tr,struct physics& ph, struct render& re){
                 ph.oldPos = tr.pos = world.bowlCentre+
@@ -210,7 +211,6 @@ public:
                 re.colour = sf::Color(rgb.r,rgb.g,rgb.b);
 	            ph.restitution = 0.9;
             });
-
 
 //
 //		std::vector<sf::Vector2f> positions = { {-0.9,0}, {-1,-0.3}, {0.7,0}, {0,-0.3},{-0.01,-0.3} };
